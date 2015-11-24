@@ -1,0 +1,12 @@
+{
+    "private": true,
+    "dependencies": {
+        "chai": "^3.3.0",
+        "jscs": "^2.2.1",
+        "mocha": "^2.3.3"
+    },
+    "scripts": {
+        "test": "npm run lint",
+        "lint": "jscs ."
+    }
+}

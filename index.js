@@ -1,74 +1,74 @@
 'use strict';
-var map = module.exports.map;
-var serial = module.exports.serial;
-var parallel = module.exports.parallel;
 
-module.exports.serial = function (funcArray, callback) {
-    var otherFunctions;
-    if (1 < funcArray.length) {
-        otherFunctions = funcArray.splice(1, funcArray.length - 1);
-    } else if (funcArray.length == 0) {
+// Ваша супер библиотека
+var flow = require('./lib/flow.js');
+
+// Модуль для работы с файловой системой
+var fs = require('fs');
+
+// Директория с файлами
+var directory = './cats/';
+
+// Последовательно выполняем операции
+flow.serial([
+    // Вначале читаем список файлов директории
+
+    // `next` – классический колбэк всегда принимает два аргумента:
+    //    - `error` - ошибка
+    //    - `data` - результат
+    function (next) {
+        // Часть методов в Node.js уже умеет принимать такие специальные колбэки
+        // Например, чтение списка файлов директории
+        fs.readdir(directory, function (error, data) {
+            next(error, data);
+        });
+    },
+
+    // В качестве первого аргумента следующей функции передаётся результат предыдущей функции
+    // Этот аргумент не обязательный (смотри первую функцию)
+    function (files, next) {
+        files = files.map(function (dir) {
+            return directory + dir;
+        });
+
+        // Параллельно получаем параметры файлов и читаем их содержимое
+        flow.parallel([
+            function (next) {
+                // Получаем параметры для каждого файла
+                flow.map(files, fs.stat, next);
+            },
+            function (next) {
+                // Читаем содержимое для каждого файла
+                flow.map(files, fs.readFile, next);
+            }
+        ], function (error, data) {
+            next(error, data);
+        });
+    }
+
+// Результат последней функции передаётся в этот колбэк
+], function (error, data) {
+    // Если в одной из асинхронных операции произошла ошибка – выводим её
+    if (error) {
+        console.error(error.message);
+
         return;
     }
-    funcArray[0](function next(error, data) {
-        if (!error) {
-            var lost = otherFunctions[0];
-            var lastFunction = false;
-            if (otherFunctions > 1) {
-                otherFunctions = otherFunctions.splice(
-                    1, otherFunctions.length - 1);
-            } else {
-                lastFunction = true;
-            }
-            if (lastFunction) {
-                lost(data, callback);
-            } else {
-                lost(data, next);
-            }
-        } else {
-            callback(error);
-        }
-    });
-};
 
-module.exports.parallel = function (funcArray, callback) {
-    var results = [];
-    funcArray.forEach(
-        function (elem, index) {
-            elem(
-                function next(error, data) {
-                    if (!error) {
-                        results.push(data);
-                    } else {
-                        callback(error);
-                    }
-                    if (results.length == funcArray.length) {
-                        callback(error, results);
-                    }
-                }
-            );
-        }
-    );
-};
+    // Собранные параметры по файлам
+    var stats = data[0];
 
-module.exports.map = function (array, func, callback) {
-    var results = [];
-    array.forEach(
-        function (elem, index) {
-            func(elem,
-                function next(error, data) {
-                    if (!error) {
-                        results.push(data);
-                    } else {
-                        callback(error);
-                    }
-                    if (results.length == array.length) {
-                        callback(error, results);
-                    }
-                }
-            );
-        }
-    );
-};
+    // Прочитанное содержимое файлов
+    var contents = data[1];
 
+    contents = contents
+        // Исключаем пустые файлы
+        .filter(function (content, index) {
+            return stats[index].size > 0;
+        })
+        // Читаем JSON из файлов
+        .map(JSON.parse);
 
+    // И выводим
+    console.log(contents);
+});

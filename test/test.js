@@ -1,180 +1,246 @@
-var assert = require('assert');
 var fs = require('fs');
 
 var test = require('../lib/flow');
 
 var chai = require('chai');
-var expect = chai.expect;
 var sinon = require('sinon');
-
 chai.use(require('sinon-chai'));
 
-var serial = test.serial;
+var expect = chai.expect;
 
-describe('Котофайлы', function () {
-    describe('serial', function () {
-        it('Должен вызывать единственную функцию без аргументов', function () {
-            var func = sinon.spy(function (next) {
+describe('Котофайлы', () => {
+    describe('serial', () => {
+
+        it('Должен вызывать коллбэк, если список функций пуст', () => {
+            var callback = sinon.spy();
+
+            test.serial([], callback);
+            expect(callback).to.have.been.calledOnce;
+        });
+
+        it('Должен вызывать единственную функцию без аргументов', () => {
+            var func = sinon.spy((next) => {
                 next(null, 1);
             });
             var callback = sinon.spy();
 
             test.serial([func], callback);
-
-            sinon.assert.calledOnce(func);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith(null, 1));
+            expect(func).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledWith(null, 1);
         });
 
-        it('Должен объединять две функции в цепочку', function () {
-            var func1 = sinon.spy(function (next) {
+        it('Должен объединять две функции в цепочку', () => {
+            var func1 = sinon.spy((next) => {
                 next(null, 1);
             });
-            var func2 = sinon.spy(function (data, next) {
+            var func2 = sinon.spy((data, next) => {
                 next(null, 2);
             });
             var callback = sinon.spy();
 
             test.serial([func1, func2], callback);
 
-            sinon.assert.calledOnce(func1);
-            sinon.assert.calledOnce(func2);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith(null, 2));
-            assert.equal(1, func2.getCall(0).args[0]);
+            expect(func1).to.have.been.calledOnce;
+            expect(func2).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledWith(null, 2);
+            expect(func2.getCall(0).args[0]).to.be.equal(1);
         });
 
-        it('Не выполняется вторая функция, если первая вызвала ошибку', function () {
-            var func1 = sinon.spy(function (next) {
+        it('Не выполняется вторая функция, если первая вызвала ошибку', () => {
+            var func1 = sinon.spy((next) => {
                 next('error');
             });
-            var func2 = sinon.spy(function (data, next) {
+            var func2 = sinon.spy((data, next) => {
                 next(null, 2);
             });
             var callback = sinon.spy();
 
             test.serial([func1, func2], callback);
 
-            sinon.assert.calledOnce(func1);
-            sinon.assert.notCalled(func2);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith('error'));
+            expect(func1).to.be.calledOnce;
+            expect(func2).to.not.be.called;
+            expect(callback).to.be.calledOnce;
+            expect(callback).to.be.calledWith('error');
         });
+
     });
-    describe('parallel', function () {
-        it('Должен вызывать единственную функцию', function () {
-            var func = sinon.spy(function (next) {
+
+    describe('parallel', () => {
+
+        it('Должен вызывать коллбэк, если список функций пуст', () => {
+            var callback = sinon.spy();
+
+            test.parallel([], callback);
+            expect(callback).to.have.been.calledOnce;
+        });
+
+        it('Должен вызывать единственную функцию', () => {
+            var func = sinon.spy((next) => {
                 next(null, 1);
             });
             var callback = sinon.spy();
 
             test.parallel([func], callback);
 
-            sinon.assert.calledOnce(func);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith(null, [1]));
+            expect(func).to.be.calledOnce;
+            expect(callback).to.be.calledOnce;
+            expect(callback).to.be.calledWith(null, [1]);
         });
-        it('Должен вызывать все три функции', function () {
-            var func1 = sinon.spy(function (next) {
+
+        it('Должен вызывать все три функции', () => {
+            var func1 = sinon.spy((next) => {
                 next(null, 1);
             });
-            var func2 = sinon.spy(function (next) {
+            var func2 = sinon.spy((next) => {
                 next(null, 2);
             });
-            var func3 = sinon.spy(function (next) {
+            var func3 = sinon.spy((next) => {
                 next(null, 3);
             });
             var callback = sinon.spy();
 
             test.parallel([func1, func2, func3], callback);
 
-            sinon.assert.calledOnce(func1);
-            sinon.assert.calledOnce(func2);
-            sinon.assert.calledOnce(func3);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith(null, [1, 2, 3]));
+            expect(func1).to.be.calledOnce;
+            expect(func2).to.be.calledOnce;
+            expect(func3).to.be.calledOnce;
+            expect(callback).to.be.calledOnce;
+            expect(callback).to.be.calledWith(null, [1, 2, 3]);
         });
-        it('Должен вызывать все три функции по порядку, т.к. задано ограничение в 1',
-            function (done) {
 
-                var func1 = sinon.spy(function (next) {
-                    fs.readFile('./cats/barsik.json', function () {
+        it('Должен вызывать все три функции по порядку, т.к. задано ограничение в 1',
+            (done) => {
+
+                var func1 = sinon.spy((next) => {
+                    fs.readFile('./cats/barsik.json', () => {
                         sinon.assert.notCalled(func2);
                         sinon.assert.notCalled(func3);
                         next(arguments);
                     });
                 });
-                var func2 = sinon.spy(function (next) {
-                    fs.readFile('./cats/batonchik.json', function () {
+                var func2 = sinon.spy((next) => {
+                    fs.readFile('./cats/batonchik.json', () => {
                         sinon.assert.calledOnce(func1);
                         sinon.assert.notCalled(func3);
                         next(arguments);
                     });
                 });
-                var func3 = sinon.spy(function (next) {
-                    fs.readFile('./cats/murzic.json', function () {
+                var func3 = sinon.spy((next) => {
+                    fs.readFile('./cats/murzic.json', () => {
                         sinon.assert.calledOnce(func1);
                         sinon.assert.calledOnce(func2);
                         next(arguments);
                     });
                 });
 
-                var callback = sinon.spy(function () {
+                var callback = sinon.spy(() => {
                     done();
                 });
 
                 test.parallel([func1, func2, func3], 1, callback);
             });
-        it('Должен возвращать ошибку, если одна из функций вернула ошибку', function () {
-            var func1 = sinon.spy(function (next) {
+
+        it('Должен возвращать ошибку, если одна из функций вернула ошибку', () => {
+            var func1 = sinon.spy((next) => {
                 next(null, 1);
             });
-            var func2 = sinon.spy(function (next) {
+            var func2 = sinon.spy((next) => {
                 next('error');
             });
-            var func3 = sinon.spy(function (next) {
+            var func3 = sinon.spy((next) => {
                 next(null, 3);
             });
             var callback = sinon.spy();
 
             test.parallel([func1, func2, func3], callback);
 
-            sinon.assert.calledOnce(func1);
-            sinon.assert.calledOnce(func2);
-            sinon.assert.calledOnce(func3);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith('error', [1, undefined, 3]));
+            expect(func1).to.be.calledOnce;
+            expect(func2).to.be.calledOnce;
+            expect(func3).to.be.calledOnce;
+            expect(callback).to.be.calledOnce;
+            expect(callback).to.be.calledWith('error', [1, undefined, 3]);
         });
+
     });
-    describe('map', function () {
-        it('Должен применять функцию к массиву значений', function () {
-            var func = sinon.spy(function (value, next) {
+    describe('map', () => {
+
+        it('Должен вызывать коллбэк, если список элементов пуст', () => {
+
+            var func = () => {
+            };
+            var callback = sinon.spy();
+
+            test.map([], func, callback);
+            expect(callback).to.have.been.calledOnce;
+        });
+
+
+        it('Должен применять функцию к массиву значений', () => {
+            var func = sinon.spy((value, next) => {
                 next(null, value * 2);
             });
             var callback = sinon.spy();
 
             test.map([1, 2, 3], func, callback);
 
-            sinon.assert.calledThrice(func);
-            sinon.assert.calledOnce(callback);
-            assert(callback.calledWith(null, [2, 4, 6]));
+            expect(func).to.be.calledThrice;
+            expect(callback).to.be.calledOnce;
+            expect(callback).to.be.calledWith(null, [2, 4, 6]);
         });
-    });
-    describe('makeAsync', function () {
-        it('Полученную функцию можно использовать в serial', function (done) {
 
-            var callback = function (error, data) {
-                assert(error === null);
-                assert(data.name === 'barsik');
-                assert(data.price === 5000);
+    });
+    describe('makeAsync', () => {
+
+        it('Полученную функцию можно использовать в serial', (done) => {
+
+            var callback = (error, data) => {
+                expect(error).to.be.equal(null);
+                expect(data.name).to.be.equal('barsik');
+                expect(data.price).to.be.equal(5000);
                 done();
             };
             test.serial([
-                function (next) {
+                (next) => {
                     fs.readFile('./cats/barsik.json', next);
                 },
                 test.makeAsync(JSON.parse)
             ], callback);
         });
+
+        it('Если функция выбрасывает исключение, то оно передаётся в качестве ошибки', (done) => {
+
+            var callback = (error, data) => {
+                expect(error).to.be.equal('Ошибка!');
+                expect(data).to.be.equal(undefined);
+                done();
+            };
+
+            var func = sinon.spy(() => {
+                throw new Error('Ошибка!');
+            });
+
+            test.serial([test.makeAsync(func)], callback);
+        });
+
+        it('Полученную функцию можно использовать в serial первой', (done) => {
+
+            var callback = (error, data) => {
+                expect(error).to.be.equal(null);
+                expect(data).to.be.equal(10);
+                done();
+            };
+
+            var func1 = sinon.spy(() => {
+                return 5;
+            });
+            var func2 = sinon.spy((a, next) => {
+                next(null, a * 2);
+            });
+
+            test.serial([test.makeAsync(func1), func2], callback);
+        });
+
     });
 });

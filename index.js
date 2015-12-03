@@ -72,3 +72,15 @@ flow.serial([
     // И выводим
     console.log(contents);
 });
+
+/*
+flow.serial([
+    function (next) {
+        fs.readFile('./cats/barsik.json', next);
+    },
+    flow.makeAsync(JSON.parse)
+], function (err, parsedJson) {
+    console.log(parsedJson);
+});
+
+*/

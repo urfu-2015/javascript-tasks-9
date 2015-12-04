@@ -16,6 +16,7 @@ describe('Котофайлы', () => {
 
             test.serial([], callback);
             expect(callback).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledWith(null);
         });
 
         it('Должен вызывать единственную функцию без аргументов', () => {
@@ -74,6 +75,7 @@ describe('Котофайлы', () => {
 
             test.parallel([], callback);
             expect(callback).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledWith(null, []);
         });
 
         it('Должен вызывать единственную функцию', () => {
@@ -102,6 +104,27 @@ describe('Котофайлы', () => {
             var callback = sinon.spy();
 
             test.parallel([func1, func2, func3], callback);
+
+            expect(func1).to.be.calledOnce;
+            expect(func2).to.be.calledOnce;
+            expect(func3).to.be.calledOnce;
+            expect(callback).to.be.calledOnce;
+            expect(callback).to.be.calledWith(null, [1, 2, 3]);
+        });
+
+        it('Должен параллельно вызывать все три функции, если limit > 3', () => {
+            var func1 = sinon.spy((next) => {
+                next(null, 1);
+            });
+            var func2 = sinon.spy((next) => {
+                next(null, 2);
+            });
+            var func3 = sinon.spy((next) => {
+                next(null, 3);
+            });
+            var callback = sinon.spy();
+
+            test.parallel([func1, func2, func3], 5, callback);
 
             expect(func1).to.be.calledOnce;
             expect(func2).to.be.calledOnce;
@@ -174,6 +197,7 @@ describe('Котофайлы', () => {
 
             test.map([], func, callback);
             expect(callback).to.have.been.calledOnce;
+            expect(callback).to.have.been.calledWith(null, []);
         });
 
 
@@ -211,14 +235,16 @@ describe('Котофайлы', () => {
 
         it('Если функция выбрасывает исключение, то оно передаётся в качестве ошибки', (done) => {
 
+            var e = new Error('Ошибка!');
+
             var callback = (error, data) => {
-                expect(error).to.be.equal('Ошибка!');
+                expect(error).to.be.equal(e);
                 expect(data).to.be.equal(undefined);
                 done();
             };
 
             var func = sinon.spy(() => {
-                throw new Error('Ошибка!');
+                throw e;
             });
 
             test.serial([test.makeAsync(func)], callback);

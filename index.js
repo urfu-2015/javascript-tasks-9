@@ -30,6 +30,7 @@ flow.serial([
         files = files.map(function (dir) {
             return directory + dir;
         });
+        console.log(files);
 
         // Параллельно получаем параметры файлов и читаем их содержимое
         flow.parallel([
@@ -51,7 +52,6 @@ flow.serial([
     // Если в одной из асинхронных операции произошла ошибка – выводим её
     if (error) {
         console.error(error.message);
-
         return;
     }
 
@@ -60,7 +60,7 @@ flow.serial([
 
     // Прочитанное содержимое файлов
     var contents = data[1];
-
+    console.log(contents);
     contents = contents
         // Исключаем пустые файлы
         .filter(function (content, index) {

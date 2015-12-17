@@ -57,4 +57,53 @@ describe('Check', function () {
         flow.parallel(test_function, callback);
 
     });
+
+    it('should check that target emptyArray in parallel', function (done) {
+        var result = [];
+
+        function callback(error, data) {
+            assert.deepEqual(error, null);
+            done();
+        }
+
+        var test_function = [];
+        flow.parallel(test_function, callback);
+    });
+
+    it('should check that target emptyArray in serial', function (done) {
+        var result = [];
+
+        function callback(error, data) {
+            assert.deepEqual(error, null);
+            done();
+        }
+
+        var test_function = [];
+        flow.serial(test_function, callback);
+    });
+
+    it('should check that target emptyArray in map', function (done) {
+        var result = [];
+
+        function callback(error, data) {
+            assert.deepEqual(error, null);
+            done();
+        }
+
+        function test2(callback) {
+            setTimeout(function () {
+                callback(false, 1);
+            }, 0);
+
+        }
+
+        function test1(callback) {
+            setTimeout(function () {
+                callback(false, 2);
+            }, 0);
+        }
+
+        var test_function = [test1, test2];
+        flow.map([], test_function, callback);
+    });
 });
